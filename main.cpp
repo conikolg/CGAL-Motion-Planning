@@ -19,7 +19,9 @@ typedef CGAL::Cartesian<Number_type> Kernel;
 typedef CGAL::Arr_segment_traits_2<Kernel> Traits_2;
 typedef Traits_2::Point_2 Point_2;
 typedef Traits_2::X_monotone_curve_2 Segment_2;
+
 typedef CGAL::Arrangement_2<Traits_2> Arrangement_2;
+typedef Arrangement_2::Vertex Vertex_2;
 typedef CGAL::Arr_trapezoid_ric_point_location<Arrangement_2> Trap_pl;
 
 void print_neighboring_vertices(Arrangement_2::Vertex_const_handle v) {
@@ -38,6 +40,41 @@ void print_neighboring_vertices(Arrangement_2::Vertex_const_handle v) {
     std::cout << std::endl;
 }
 
+void print_ccb(Arrangement_2::Ccb_halfedge_const_circulator circ) {
+    Arrangement_2::Ccb_halfedge_const_circulator curr = circ;
+    std::cout << "(" << curr->source()->point() << ")";
+    do {
+        Arrangement_2::Halfedge_const_handle he = curr;
+        std::cout << " [" << he->curve() << "] "
+                  << "(" << he->target()->point() << ")";
+    } while (++curr != circ);
+    std::cout << std::endl;
+}
+
+void print_face(Arrangement_2::Face_const_handle f) {
+    // Print the outer boundary.
+    if (f->is_unbounded())
+        std::cout << "Unbounded face. " << std::endl;
+    else {
+        std::cout << "Outer boundary: ";
+        print_ccb(f->outer_ccb());
+    }
+    // Print the boundary of each of the holes.
+    Arrangement_2::Hole_const_iterator hi;
+    int index = 1;
+    for (hi = f->holes_begin(); hi != f->holes_end(); ++hi, ++index) {
+        std::cout << " Hole #" << index << ": ";
+        print_ccb(*hi);
+    }
+    // Print the isolated vertices.
+    Arrangement_2::Isolated_vertex_const_iterator iv;
+    for (iv = f->isolated_vertices_begin(), index = 1;
+         iv != f->isolated_vertices_end(); ++iv, ++index) {
+        std::cout << " Isolated vertex #" << index << ": "
+                  << "(" << iv->point() << ")" << std::endl;
+    }
+}
+
 int main() {
     // Defines a polygon
 //    Point points[] = {Point(0, 0), Point(5.1, 0), Point(1, 1), Point(0.5, 6)};
@@ -51,25 +88,36 @@ int main() {
 
     // An arrangement
     Arrangement_2 arr;
+
     // Define points of a polygon
-    Point_2 points2[] = {Point_2(0, 0), Point_2(5, 0), Point_2(5, 5), Point_2(0, 5)};
-    // Number of points
-    int num = sizeof(points2) / sizeof(points2[0]);
-    // Array of segments
-    Segment_2 curve[num];
-    // Generate segments
-    for (int i = 0; i < num - 1; i++)
-        curve[i] = Segment_2(points2[i], points2[i + 1]);
-    // Generate the final cycling segment
-    curve[num - 1] = Segment_2(points2[num - 1], points2[0]);
+    Point_2 p1 = Point_2(0, 0);
+    Point_2 p2 = Point_2(5, 0);
+    Point_2 p3 = Point_2(5, 5);
+    Point_2 p4 = Point_2(0, 5);
+    Segment_2 polygon[] = {Segment_2(p1, p2), Segment_2(p2, p3), Segment_2(p3, p4), Segment_2(p4, p1)};
     // Insert the segments
-    CGAL::insert(arr, &curve[0], &curve[num]);
+    CGAL::insert(arr, &polygon[0], &polygon[4]);
 
-    print_neighboring_vertices(arr.vertices_begin());
+    // Define points of a polygon
+    Point_2 p5 = Point_2(-10, 10);
+    Point_2 p6 = Point_2(10, 10);
+    Point_2 p7 = Point_2(5, 15);
+    Point_2 p8 = Point_2(-5, 15);
+    Segment_2 polygon2[] = {Segment_2(p5, p6), Segment_2(p6, p7), Segment_2(p7, p8), Segment_2(p8, p5)};
+    // Insert the segments
+    CGAL::insert(arr, &polygon2[0], &polygon2[4]);
 
-    Trap_pl trap_pl;
-    trap_pl.attach(arr);
+//    print_neighboring_vertices(arr.vertices_begin());
 
+    // Print the faces of the arrangement
+    for (Arrangement_2::Face_const_iterator fit = arr.faces_begin(); fit != arr.faces_end(); fit++) {
+//        std::cout << "Theres an face! Bounded: " << !fit->is_unbounded() << std::endl;
+//        print_face(fit);
+    }
+
+//    Trap_pl trap_pl;
+//    trap_pl.attach(arr);
+//
     typedef Arrangement_2::Vertex_const_handle Vertex_const_handle;
     typedef std::pair<Vertex_const_handle, std::pair<CGAL::Object, CGAL::Object>> Vert_decomp_entry;
     typedef std::list<Vert_decomp_entry> Vert_decomp_list;
