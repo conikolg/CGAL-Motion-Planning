@@ -1,5 +1,4 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_2.h>
 #include <iostream>
 #include <CGAL/Arr_polycurve_traits_2.h>
 #include <CGAL/Arrangement_2.h>
@@ -9,10 +8,10 @@
 #include <CGAL/Arr_trapezoid_ric_point_location.h>
 #include <CGAL/Arr_vertical_decomposition_2.h>
 #include <CGAL/Object.h>
+#include "arr_print.h"
+#include "vertical_decomposition.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 Point;
-typedef CGAL::Polygon_2<K> Polygon_2;
 
 typedef CGAL::Quotient<CGAL::MP_Float> Number_type;
 typedef CGAL::Cartesian<Number_type> Kernel;
@@ -76,10 +75,13 @@ void print_face(Arrangement_2::Face_const_handle f) {
 }
 
 void add_polygon(Arrangement_2 *arr, const std::vector<Point_2> &points) {
+    std::cout << "Adding new polygon with points { ";
     Segment_2 segments[points.size()];
     for (int i = 0; i < points.size(); i++) {
         segments[i] = Segment_2(points.at(i), points.at((i + 1) % points.size()));
+        std::cout << "(" << points.at(i) << ") ";
     }
+    std::cout << "}" << std::endl;
     CGAL::insert(*arr, &segments[0], &segments[points.size()]);
 }
 
@@ -97,11 +99,16 @@ int main() {
     // An arrangement
     Arrangement_2 arr;
     // Add small square
-    add_polygon(&arr, std::vector<Point_2>({Point_2(0, 0), Point_2(5, 0), Point_2(5, 5), Point_2(0, 5)}));
+    add_polygon(&arr, std::vector<Point_2>(
+            {Point_2(0, 0), Point_2(5, 0), Point_2(5, 5), Point_2(0, 5)}));
     // Add larger trapezoid above square
-    add_polygon(&arr, std::vector<Point_2>({Point_2(-10, 10), Point_2(10, 10), Point_2(5, 15), Point_2(-1, 15)}));
+    add_polygon(&arr, std::vector<Point_2>(
+            {Point_2(-10, 10), Point_2(10, 10), Point_2(5, 15), Point_2(-1, 15)}));
     // Add a bounding box
-    add_polygon(&arr, std::vector<Point_2>({Point_2(-20, 20), Point_2(20, 20), Point_2(20, -20), Point_2(-20, -20)}));
+    add_polygon(&arr, std::vector<Point_2>(
+            {Point_2(-20, 20), Point_2(20, 20), Point_2(20, -20), Point_2(-20, -20)}));
+
+    std::cout << std::endl;
 
 //    print_neighboring_vertices(arr.vertices_begin());
 
@@ -111,50 +118,59 @@ int main() {
 //        print_face(fit);
 //    }
 
-//    Trap_pl trap_pl;
-//    trap_pl.attach(arr);
-//
-    typedef Arrangement_2::Vertex_const_handle Vertex_const_handle;
-    typedef std::pair<Vertex_const_handle, std::pair<CGAL::Object, CGAL::Object>> Vert_decomp_entry;
-    typedef std::list<Vert_decomp_entry> Vert_decomp_list;
-    Vert_decomp_list vd_list;
-    CGAL::decompose(arr, std::back_inserter(vd_list));
+    if (false) {
+        typedef Arrangement_2::Vertex_const_handle Vertex_const_handle;
+        typedef std::pair<Vertex_const_handle, std::pair<CGAL::Object, CGAL::Object>> Vert_decomp_entry;
+        typedef std::list<Vert_decomp_entry> Vert_decomp_list;
+        Vert_decomp_list vd_list;
+        CGAL::decompose(arr, std::back_inserter(vd_list));
 
-    typedef Arrangement_2::Halfedge_const_handle Halfedge_const_handle;
-    typedef Arrangement_2::Face_const_handle Face_const_handle;
-    // Print the results.
-    Vert_decomp_list::const_iterator vd_iter;
-    std::pair<CGAL::Object, CGAL::Object> curr;
-    Vertex_const_handle vh;
-    Halfedge_const_handle hh;
-    Face_const_handle fh;
+        typedef Arrangement_2::Halfedge_const_handle Halfedge_const_handle;
+        typedef Arrangement_2::Face_const_handle Face_const_handle;
+        // Print the results.
+        Vert_decomp_list::const_iterator vd_iter;
+        std::pair<CGAL::Object, CGAL::Object> curr;
+        Vertex_const_handle vh;
+        Halfedge_const_handle hh;
+        Face_const_handle fh;
 
-    for (vd_iter = vd_list.begin(); vd_iter != vd_list.end(); ++vd_iter) {
-        curr = vd_iter->second;
-        std::cout << "Vertex (" << vd_iter->first->point() << ") : ";
+        for (vd_iter = vd_list.begin(); vd_iter != vd_list.end(); ++vd_iter) {
+            curr = vd_iter->second;
+            std::cout << "Vertex (" << vd_iter->first->point() << ") : ";
 
-        std::cout << " feature below: ";
-        if (CGAL::assign(vh, curr.first))
-            std::cout << '(' << vh->point() << ')';
-        else if (CGAL::assign(fh, curr.first))
-            if (!fh->is_fictitious())
-                std::cout << '[' << fh->outer_ccb().ptr() << ']';
+            std::cout << " feature below: ";
+            if (CGAL::assign(vh, curr.first))
+                std::cout << '(' << vh->point() << ')';
+            else if (CGAL::assign(fh, curr.first))
+                if (!fh->is_fictitious())
+                    std::cout << '[' << fh->outer_ccb().ptr() << ']';
+                else
+                    std::cout << "NONE";
             else
-                std::cout << "NONE";
-        else
-            std::cout << "EMPTY";
+                std::cout << "EMPTY";
 
-        std::cout << "   feature above: ";
-        if (CGAL::assign(vh, curr.second))
-            std::cout << '(' << vh->point() << ')' << std::endl;
-        else if (CGAL::assign(hh, curr.second))
-            if (!fh->is_fictitious())
-                std::cout << '[' << fh->outer_ccb().ptr() << ']' << std::endl;
+            std::cout << "   feature above: ";
+            if (CGAL::assign(vh, curr.second))
+                std::cout << '(' << vh->point() << ')' << std::endl;
+            else if (CGAL::assign(hh, curr.second))
+                if (!fh->is_fictitious())
+                    std::cout << '[' << fh->outer_ccb().ptr() << ']' << std::endl;
+                else
+                    std::cout << "NONE" << std::endl;
             else
-                std::cout << "NONE" << std::endl;
-        else
-            std::cout << "EMPTY" << std::endl;
+                std::cout << "EMPTY" << std::endl;
+        }
     }
+
+    std::cout << "Added all segments to arrangement." << std::endl;
+    print_arrangement_size(arr);
+
+    // Add vertical edges that induce the vertical decomposition.
+    Traits_2 traits;
+    Kernel *kernel = &traits;
+    vertical_decomposition(arr, *kernel);
+    std::cout << std::endl << "Added vertical bullet paths." << std::endl;
+    print_arrangement_size(arr);
 
     return 0;
 }
