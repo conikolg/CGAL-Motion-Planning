@@ -75,6 +75,14 @@ void print_face(Arrangement_2::Face_const_handle f) {
     }
 }
 
+void add_polygon(Arrangement_2 *arr, const std::vector<Point_2> &points) {
+    Segment_2 segments[points.size()];
+    for (int i = 0; i < points.size(); i++) {
+        segments[i] = Segment_2(points.at(i), points.at((i + 1) % points.size()));
+    }
+    CGAL::insert(*arr, &segments[0], &segments[points.size()]);
+}
+
 int main() {
     // Defines a polygon
 //    Point points[] = {Point(0, 0), Point(5.1, 0), Point(1, 1), Point(0.5, 6)};
@@ -88,32 +96,20 @@ int main() {
 
     // An arrangement
     Arrangement_2 arr;
-
-    // Define points of a polygon
-    Point_2 p1 = Point_2(0, 0);
-    Point_2 p2 = Point_2(5, 0);
-    Point_2 p3 = Point_2(5, 5);
-    Point_2 p4 = Point_2(0, 5);
-    Segment_2 polygon[] = {Segment_2(p1, p2), Segment_2(p2, p3), Segment_2(p3, p4), Segment_2(p4, p1)};
-    // Insert the segments
-    CGAL::insert(arr, &polygon[0], &polygon[4]);
-
-    // Define points of a polygon
-    Point_2 p5 = Point_2(-10, 10);
-    Point_2 p6 = Point_2(10, 10);
-    Point_2 p7 = Point_2(5, 15);
-    Point_2 p8 = Point_2(-5, 15);
-    Segment_2 polygon2[] = {Segment_2(p5, p6), Segment_2(p6, p7), Segment_2(p7, p8), Segment_2(p8, p5)};
-    // Insert the segments
-    CGAL::insert(arr, &polygon2[0], &polygon2[4]);
+    // Add small square
+    add_polygon(&arr, std::vector<Point_2>({Point_2(0, 0), Point_2(5, 0), Point_2(5, 5), Point_2(0, 5)}));
+    // Add larger trapezoid above square
+    add_polygon(&arr, std::vector<Point_2>({Point_2(-10, 10), Point_2(10, 10), Point_2(5, 15), Point_2(-1, 15)}));
+    // Add a bounding box
+    add_polygon(&arr, std::vector<Point_2>({Point_2(-20, 20), Point_2(20, 20), Point_2(20, -20), Point_2(-20, -20)}));
 
 //    print_neighboring_vertices(arr.vertices_begin());
 
     // Print the faces of the arrangement
-    for (Arrangement_2::Face_const_iterator fit = arr.faces_begin(); fit != arr.faces_end(); fit++) {
+//    for (Arrangement_2::Face_const_iterator fit = arr.faces_begin(); fit != arr.faces_end(); fit++) {
 //        std::cout << "Theres an face! Bounded: " << !fit->is_unbounded() << std::endl;
 //        print_face(fit);
-    }
+//    }
 
 //    Trap_pl trap_pl;
 //    trap_pl.attach(arr);
